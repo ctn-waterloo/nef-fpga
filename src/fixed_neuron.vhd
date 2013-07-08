@@ -35,7 +35,7 @@ entity fixed_neuron is
     generic (
         decay: integer := 4;
         tau_ref: unsigned(3 downto 0) := X"2";
-        Jbias: sfixed(31 downto 0) := to_sfixed(0, 31,0)
+        Jbias: sfixed(15 downto 0) := to_sfixed(0, 15,0)
     );
     Port ( 
         clk : in STD_LOGIC;

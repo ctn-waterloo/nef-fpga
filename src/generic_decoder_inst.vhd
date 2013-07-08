@@ -96,6 +96,7 @@ COMB: process(reg, rst, valid, spikes, ROM_data)
     variable ci: ci_type;
 begin
     ci := reg;
+    ci.ready := '0';
     if(rst = '1') then
         ci := reg_reset;
     else
