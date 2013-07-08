@@ -33,7 +33,7 @@ use IEEE_proposed.fixed_pkg.ALL;
 
 entity fixed_neuron is
     generic (
-        decay: sfixed(31 downto 0) := to_sfixed(3276, 31,0); -- decay = (1<<16)/tau_rc
+        decay: integer := 4;
         tau_ref: unsigned(3 downto 0) := X"2";
         Jbias: sfixed(31 downto 0) := to_sfixed(0, 31,0)
     );
@@ -50,13 +50,12 @@ entity fixed_neuron is
 end fixed_neuron;
 
 architecture Behavioral of fixed_neuron is
-    type state_type is (state_idle, state_dv, state_voltage, state_spike);
+    type state_type is (state_idle, state_voltage, state_spike);
     
     type ci_type is record    
         state: state_type;
         voltage: sfixed(31 downto 0);
         refractory: unsigned(3 downto 0);
-        current_diff: sfixed(31 downto 0); -- (current - voltage)
         dv: sfixed(31 downto 0); -- (current - voltage)*decay >> 16
         
         valid: std_logic;
@@ -67,7 +66,6 @@ architecture Behavioral of fixed_neuron is
         state => state_idle,
         voltage => to_sfixed(0, 31,0),
         refractory => X"0",
-        current_diff => (others=>'0'),
         dv => (others=>'0'),
         
         valid => '0',
@@ -93,14 +91,9 @@ begin
                 when state_idle =>
                     if(ready = '1') then
                         ci.valid := '0';
-                        -- calculate current_diff = current - voltage
-                        ci.current_diff := resize(current - reg.voltage + Jbias, ci.current_diff);
-                        ci.state := state_dv;
+                        ci.dv := resize((current - reg.voltage + Jbias) sra decay, ci.dv);
+                        ci.state := state_voltage;
                     end if;
-                when state_dv =>
-                    -- calculate dv = (current_diff * decay) >> 16
-                    ci.dv := resize((reg.current_diff * decay) sra 16, ci.dv); -- FIXME possibly make decay a power of 2, eliminate the multiply
-                    ci.state := state_voltage;
                 when state_voltage =>
                     -- accumulate voltage if not in refractory period, and decrement refractory otherwise
                     if(reg.refractory = X"0") then
